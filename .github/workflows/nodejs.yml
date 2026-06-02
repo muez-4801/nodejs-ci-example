@@ -1,5 +1,4 @@
-name: Node.js CI
-
+name: Node.js CI/CD
 on:
   push:
     branches: [ main ]
@@ -7,17 +6,55 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        
-    - run: npm install
-    - run: npm test
-    
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
+
+  deploy-to-staging:
+    needs: build-and-test # تعتمد على نجاح خطوة البناء والاختبار
+    runs-on: ubuntu-latest
+    environment: Staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Simulate deployment to Staging
+        run: |
+          echo "Deploying application to Staging environment..."
+          echo "Application version: $(git rev-parse --short HEAD)"
+          echo "Deployment to Staging successful!"
+
+  deploy-to-production:
+    needs: deploy-to-staging # تعتمد على نجاح النشر في الـ Staging
+    runs-on: ubuntu-latest
+    environment: Production # هنا حيطالبك بالموافقة اليدوية
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Simulate deployment to Production
+        run: |
+          echo "Deploying application to Production environment..."
+          echo "Application version: $(git rev-parse --short HEAD)"
+      - name: Simulated health check
+        run: |
+          echo "Running health checks..."
+          echo "Health endpoint: https://yourapp.com/health (simulated)"
+          
+          # محاكاة عشوائية: 50% ينجح و 50% يفشل
+          if (( RANDOM % 2 == 0 )); then
+            echo " Health check passed!"
+            echo "Deployment to Production successful!"
+          else
+            echo " Simulated health check failure!"
+            echo "HTTP 500 - Service Unhealthy"
+            exit 1 # الخروج برمز خطأ لإيقاف العملية ومحاكاة التراجع (Rollback)
+          fi
